@@ -27,12 +27,15 @@ import os
 import shutil
 import time
 import requests
+import copy
 from queue import Queue
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from timeloop import Timeloop
 
 import config
+from tsdb import DBHelper
+from logger import logger
 
 #Defininitions
 rssilogPath = os.path.join(config.bluehydra_path, config.bluehydra_rssi_log_file)
@@ -70,6 +73,7 @@ sqlTriggerUpdate = "CREATE TRIGGER update_device AFTER UPDATE ON blue_hydra_devi
 
 upload_cache = Queue(maxsize=0)
 all_devices = {}
+dbtool = DBHelper()
 
 def checkIfProcessRunning(processName):
     '''
@@ -96,7 +100,7 @@ def updateDevice(address, name, vendor, company, manufacture, updated_at, classi
                 'major_type': classic_major_class,
                 'minor_type': classic_minor_class
      }
-    print('device updated or created: ', all_devices[address])
+    logger.info('device updated or created: ', all_devices[address])
 
 def initDeviceFromDB():
     #Connect to database
@@ -112,9 +116,9 @@ def initDeviceFromDB():
             c.execute(sql)
             results = c.fetchall()
         except Exception as e:
-            print("Unable to query database: " + str(e))
+            logger.error("Unable to query database: " + str(e))
     except Exception as e:
-        print("Unable to connect to database: " + str(e))
+        logger.error("Unable to connect to database: " + str(e))
 
     if results is not None or len(results)>0:
         for record in results:
@@ -128,7 +132,7 @@ def initDeviceFromDB():
                 'major_type': record[-3],
                 'minor_type': record[-2],
             }
-            print('device from existed db: ', all_devices[record[0]])
+            logger.info('device from existed db: ', all_devices[record[0]])
 
     try:
         conn.create_function("updateDevice", 8, updateDevice)
@@ -143,7 +147,7 @@ def initDeviceFromDB():
         #     SET name='test5' \
         #     where address = '25:23:79:22:A0:7E';")
     except Exception as e:
-        print("Unable to create trigger in database: " + str(e))
+        logger.error("Unable to create trigger in database: " + str(e))
     
     return
 
@@ -161,9 +165,9 @@ def loadDeviceFromDB():
             c.execute(sql)
             results = c.fetchall()
         except Exception as e:
-            print("Unable to query database: " + str(e))
+            logger.error("Unable to query database: " + str(e))
     except Exception as e:
-        print("Unable to connect to database: " + str(e))
+        logger.error("Unable to connect to database: " + str(e))
 
     if results is not None or len(results)>0:
         for record in results:
@@ -177,7 +181,7 @@ def loadDeviceFromDB():
                 'major_type': record[-3],
                 'minor_type': record[-2],
             }
-            #print('device from existed db: ', all_devices[record[0]])
+            #logger.info('device from existed db: ', all_devices[record[0]])
 
 def upload(devices):
     # data to be sent to api
@@ -186,15 +190,10 @@ def upload(devices):
     # sending post request and saving response as response object
     try:
         #r = requests.post(url = config.upload_endpoint, data = data)
-        print('upload thread: uploaded {} devices'.format(len(devices)))
-    except requests.exceptions.HTTPError as errh:
-        print ("Http Error:",errh, "\n on devices: \n", devices)
-    except requests.exceptions.ConnectionError as errc:
-        print ("Error Connecting:",errc, "\n on devices: \n", devices)
-    except requests.exceptions.Timeout as errt:
-        print ("Timeout Error:",errt, "\n on devices: \n", devices)
-    except requests.exceptions.RequestException as err:
-        print ("OOps: Something Else",err, "\n on devices: \n", devices)
+        dbtool.upload(data)
+        logger.info('upload thread: uploaded {} devices'.format(len(devices)))
+    except Exception as errh:
+        logger.error("Http Error:",errh, "\n on devices: \n", devices)
 
 
 #wait for bluehydra service
@@ -222,7 +221,7 @@ def collect_bluehydra():
     #    time.sleep(1)
     
     if not os.path.exists(rssilogPath):
-        print('collect task loop: not find blue_hydra_rssi.log, exit!')
+        logger.info('collect task loop: not find blue_hydra_rssi.log, exit!')
         collect_task_lock.release()
         return
 
@@ -247,7 +246,7 @@ def collect_bluehydra():
                 if ts in rssi_records[mac]:
                     continue
                 rssi_records[mac][ts] = rssi
-        print('collect task loop: processed {} mac: ts: rssi records from {} original rssi records'.format(len(rssi_records), len(logs)-1))
+        logger.info('collect task loop: processed {} mac: ts: rssi records from {} original rssi records'.format(len(rssi_records), len(logs)-1))
         #print('collect task loop: processed records \n', rssi_records)
 
     upload_cache.put(rssi_records)
@@ -277,7 +276,7 @@ def upload2datacenter():
                     all_records[record_mac] = record_rssis
                     
         upload_cache.task_done()
-    print('upload task loop: unified {} rssi records'.format(len(all_records)))
+    logger.info('upload task loop: unified {} rssi records'.format(len(all_records)))
     #print('upload task loop: processed records \n', upload_cache)
     
     if len(all_records) == 0:
@@ -292,15 +291,16 @@ def upload2datacenter():
     upload_devices = []
     for rssi_mac, rssi_values in all_records.items():
         if rssi_mac in all_devices:
-            rssi_log = {}
-            rssi_log = all_devices[rssi_mac]
-            rssi_log['rssis'] = rssi_values
+            for timestamp, rssi in rssi_values.items():
+                rssi_log = copy.deepcopy(all_devices[rssi_mac])
+                rssi_log['signal'] = rssi
+                rssi_log['time'] = datetime.fromtimestamp(int(timestamp)).utcnow().isoformat("T")
             upload_devices.append(rssi_log)
             #print('upload task loop: build upload record -- ', rssi_log)
-    print('upload task loop: built {} device+rssi records'.format(len(upload_devices)))
+    logger.info('upload task loop: built {} device+rssi records'.format(len(upload_devices)))
     
         
-    t = threading.Thread(target=upload, args=(upload_devices,))
+    t = threading.Thread(target=dbtool.upload, args=(upload_devices,))
     t.start()
     
     return

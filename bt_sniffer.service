@@ -1,0 +1,11 @@
+[Unit]
+Description=BT Sniffer Service 
+
+[Service]
+Type=idle
+User=pi
+Group=pi
+ExecStart=/usr/bin/python3 /home/pi/projects/bt_sniffer/sniffer.py
+
+[Install] 
+WantedBy=multi-user.target

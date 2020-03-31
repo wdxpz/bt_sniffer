@@ -1,6 +1,6 @@
-###Environment
+# Environment
 
-# change apt-get source to ustc
+## change apt-get source to ustc
 1. /etc/apt/sources.list
 ```
 注释掉已配置好的raspberry官方镜像，使用#号注释(或直接删除，哈哈)
@@ -16,7 +16,7 @@ deb http://mirrors.ustc.edu.cn/archive.raspberrypi.org/debian/ buster main ui
 ```
 3. ** remember to change stretch to buster ** for raspberry buster system
 
-# install ubertooth driver
+## install ubertooth driver
 1. Prerequisites
 ```
 sudo apt-get install git cmake libusb-1.0-0-dev make gcc g++ libbluetooth-dev \
@@ -52,7 +52,7 @@ sudo make install
 sudo ldconfig
 ```
 
-# install blue_hydra
+## install blue_hydra
 a bluetooth sniffering tool, combined with Ubertooth one, which can sniffer data from Lower Address Part (LAP), no like the original Kismet, which can only sniffer data from HCI level
 
 this blue_hydra is clone from : [ZeroChao BlueHydra](https://github.com/ZeroChaos-/blue_hydra), which seems recording all sniffered bluetooth devices, not like the [original bluehydra](https://github.com/greatscottgadgets/ubertooth/wiki/Capturing-BLE-in-Wireshark)
@@ -67,6 +67,7 @@ git clone https://github.com/ZeroChaos-/blue_hydra
   * open rssi log, in ``blue_hydra_source_dir/blue_hydra.yml`
 ```
 rssi_log: true
+
 ```
   * systemd service, [template service file](docs/blue_hydra.service)
 ```
@@ -76,7 +77,7 @@ sudo systemctl start blue_hydra.service
 sudo systemctl status blue_hydra.service
 ```
 
-#Reference
+# Reference
 1. File loaction
 to collect bluetooth device information, it is needed to combine the data from two sources:
     * table blue_hydra_devices from blue_hydra.db in `source_dir_blue_hydra`
@@ -103,10 +104,11 @@ WHERE CAST(strftime('%s',updated_at) AS integer)
 BETWEEN CAST($START_TIME AS integer) AND CAST($STOP_TIME AS integer);
 ```
     * sample code to exec sql query from [](https://github.com/corbanvilla/BluetoothDetection/blob/master/python/query.py):
+
 ```
 import sqlite3
 
-#Defininitions
+# Defininitions
 databasePath = '/home/animcogn/blue_hydra.db'
 sqlCommand = "SELECT uuid, name, vendor, created_at, updated_at \
               FROM blue_hydra_devices WHERE status = 'online';" #Query for data from blue_hydra
@@ -130,14 +132,17 @@ def queryDatabase():
         print("Unable to connect to database: " + str(e))
 ```
 
-#Development
+# Development
 1. enviroment of needed packages
 ```
 pip3 install timeloop
+sudo apt-get install python3-influxdb
 ```
+
 2. modification of blue_hydra source codes
     * modify runner.rb to recreate blue_hydra_rssi.log file after forced delete from python scrip
 add some codes between line 835 and 836, like:
+
 ```
 #file location: `blue_hydra_source_dir/lib/blue_hydra/runner.rb`
 #line 835: msg = [ts, type, address, rssi].join(' ')
@@ -153,9 +158,41 @@ end
 ```
     * modify blue_hydra.rb to change the default set to enable rssi_log
 
+
 ```
 #file location: 'blue_hydra_source_dir/lib/blue_hydra.rb'
 
 #line 69
 "rssi_log"           => true,
+```
+
+# make the sniffer.py as service
+## nano wifi_sniffer.servcie
+```
+[Unit]
+Description=BT Sniffer Service
+
+[Service]
+Type=idle
+User=pi
+Group=pi
+ExecStart=/usr/bin/python3 /home/pi/projects/bt_sniffer/sniffer.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+** key: need to add 'User=pi', otherwise, the module Kismest_rest will not be loaded **
+
+
+## Steps to start service
+
+```
+$ cd project_dir
+$ sudo cp wifi_sniffer.service /lib/systemd/system/bt_sniffer.service
+$ sudo chmod 644 /lib/systemd/system/bt_sniffer.service
+$ sudo systemctl daemon-reload
+$ sudo systemctl enable bt_sniffer.service
+$ sudo systemctl start bt_sniffer.service
 ```
