@@ -1,3 +1,5 @@
+robot_id='tb3_0'
+
 bluehydra_process_name = 'blue_hydra'
 bluehydra_path = '/home/pi/projects/sources/blue_hydra'
 bluehydra_rssi_log_file = 'blue_hydra_rssi.log'

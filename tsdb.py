@@ -10,6 +10,7 @@ body_bt = {
     'measurement': config.upload_table,
     'time': 0,
     'tags': {
+        'robot': config.robot_id, 
         'mac': 0
     },
     'fields':{
