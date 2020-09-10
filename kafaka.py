@@ -23,7 +23,7 @@ payload = {
 }
 
 def sendMsg(data):
-    for record in bt_records:
+    for record in data:
         if record['location'] is None or len(record['location'])<2: #tell record is found during robot inspection
 
             body = copy.deepcopy(payload)

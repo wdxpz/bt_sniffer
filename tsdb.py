@@ -4,7 +4,9 @@ from influxdb import InfluxDBClient
 
 
 import config
-from logger import logger
+from logger import getLogger
+logger = getLogger('tsdb')
+logger.propagate = False
 
 body_bt = {
     'measurement': config.upload_table,
@@ -50,7 +52,7 @@ class DBHelper():
         try:
             self.client.write_points(records)
         except Exception as e:
-            logger.error('DB operation: write bt records record error!', e)
+            logger.error('DB operation: write bt records record error! ' + str(e))
     
     def emptyBTRecords(self):
         self.client.query("delete from {};".format(config.upload_table))
