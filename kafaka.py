@@ -2,7 +2,7 @@ import json
 from kafka import KafkaProducer
 import config
 
-from logger import logger
+from logger import getLogger
 logger = getLogger('Kafaka operation')
 logger.propagate = False
 
