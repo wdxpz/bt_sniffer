@@ -24,6 +24,7 @@ upload_table = 'bt_sniffer'
 #kafaka
 topic = "bt_sniffer"
 brokers = ["192.168.12.146:9092"] # current internal brokers(actually 3 brokers behind)
+block_waiting_time = 1
 
 #redis
 

@@ -120,19 +120,22 @@ def getLocation():
 #collect devices from kismet very config.collect_time_mini_interval seconds 
 def collect_bluehydra(interval):
     while True:
-        #wait for task lock
-        collect_task_lock.acquire()
 
-        #wait for bluehydra_rssi_log file
-        #while not os.path.exists(rssilogPath):
-        #    time.sleep(1)
+        time.sleep(interval)
+        
+       
+        # #wait for task lock
+        # collect_task_lock.acquire()
         
         if not os.path.exists(rssilogPath):
             logger.info('collect task loop: not find blue_hydra_rssi.log, exit!')
-            collect_task_lock.release()
-            return
+            # collect_task_lock.release()
+            continue
 
         location = getLocation()
+        if location is None or len(location)<2:
+            # collect_task_lock.release()
+            continue
 
         rssi_records = {}
         
@@ -160,15 +163,15 @@ def collect_bluehydra(interval):
 
         upload_cache.put(rssi_records)
         
-        collect_task_lock.release()
-
-        time.sleep(interval)
+        # collect_task_lock.release()
     
     
 #upload to data center every config.upload_time_mini_interval
 def upload2datacenter(interval):
     
     while True:
+
+        time.sleep(interval)
 
         all_records = {}
         
@@ -192,7 +195,7 @@ def upload2datacenter(interval):
         #print('upload task loop: processed records \n', upload_cache)
         
         if len(all_records) == 0:
-            return
+            continue
         
         #update device table
         #todo: can be improve by sqlite3 triger, the curretn problem
@@ -234,9 +237,7 @@ def upload2datacenter(interval):
             t = threading.Thread(target=dbtool.upload, args=(upload_devices,))
             t.start()
 
-        time.sleep(interval)
-    
-    return
+        
 
 
 if __name__ == 'main':
@@ -254,6 +255,6 @@ if __name__ == 'main':
     collect_t.setDaemon(True)
     collect_t.start()
 
-    upload_t = threading.Thread(name='{}_collect_bt_task'.format(config.robot_id), target=collect_bluehydra, args=(config.upload_time_mini_interval,))
+    upload_t = threading.Thread(name='{}_upload_bt_task'.format(config.robot_id), target=upload2datacenter, args=(config.upload_time_mini_interval,))
     upload_t.setDaemon(True)
     upload_t.start()
