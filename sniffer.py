@@ -108,9 +108,10 @@ def loadDeviceFromDB():
 
 def getLocation():
     res = r.get(config.robot_id)
-    location = res.get('location', None)
+    if 'location'.encode() not in res.keys():
+        return None
 
-    return location
+    return res['location'.encode()].decode()
         
 
 #collect devices from kismet very config.collect_time_mini_interval seconds 
