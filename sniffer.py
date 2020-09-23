@@ -58,8 +58,7 @@ dbtool = DBHelper() if Enable_TSDB else None
 #use a lock to avoid the case of simutaneous reading of the buehydar_rssi_log file
 collect_task_lock = threading.Lock()
 
-#TODO: need redis uri
-r = redis.Redis()
+redis_connector = redis.Redis(host=config.redis_host, port=config.redis_port, db=0)
 
 def checkIfProcessRunning(processName):
     '''
@@ -108,11 +107,8 @@ def loadDeviceFromDB():
             #logger.info('device from existed db: ', all_devices[record[0]])
 
 def getLocation():
-    if r is None:
-        msg = "exit because Redis connection is failed!"
-        logger.error(msg)
-        raise Exception(msg)
-    location = r.get(config.robot_id)
+    res = r.get(config.robot_id)
+    location = res.get('location', None)
 
     return location
         

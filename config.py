@@ -27,6 +27,8 @@ brokers = ["192.168.12.146:9092"] # current internal brokers(actually 3 brokers 
 block_waiting_time = 1
 
 #redis
+redis_host = "192.168.12.146"
+redis_port = "6379"
 
 #log file
 log_file = '/home/pi/projects/bt_sniffer/bt_sniffer.log'
