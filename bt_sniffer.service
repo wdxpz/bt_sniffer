@@ -6,6 +6,7 @@ Type=idle
 User=pi
 Group=pi
 ExecStart=/usr/bin/python3 /home/pi/projects/bt_sniffer/sniffer.py
+Restart=always
 
 [Install] 
 WantedBy=multi-user.target
