@@ -166,7 +166,14 @@ end
 "rssi_log"           => true,
 ```
 
-# make the sniffer.py as service
+# Deploy: make the sniffer.py as service
+## modify the robot id
+in `project_dir/config.py`, change `robot_id` and `id`
+```
+robot_id='tb3_0'
+id = robot_id+'-bt01'
+```
+
 ## nano wifi_sniffer.servcie
 ```
 [Unit]
