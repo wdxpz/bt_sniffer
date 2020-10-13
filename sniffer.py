@@ -182,11 +182,11 @@ def upload2datacenter(interval):
         while not upload_cache.empty():
             records = upload_cache.get()
             if len(all_records) == 0:
-                for mac, record in records:
+                for mac, record in records.items():
                     location, ts, rssi = record
                     all_records[mac] = {location: [ts, rssi]}
             else:
-                for mac, record in records:
+                for mac, record in records.items():
                     location, ts, rssi = record
                     if mac in all_records:
                         if location in all_records[mac]:
@@ -241,7 +241,7 @@ def upload2datacenter(interval):
         
 
 
-if __name__ == 'main':
+if __name__ == '__main__':
 
     #wait for bluehydra service
     #while not checkIfProcessRunning(config.bluehydra_process_name):

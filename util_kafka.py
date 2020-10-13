@@ -1,4 +1,5 @@
 import json
+import copy
 from kafka import KafkaProducer
 import config
 
@@ -37,6 +38,6 @@ def sendMsg(data):
             future = producer.send(config.topic, key="".encode(), value=body)
             # Block until a single message is sent (or timeout)
             result = future.get(timeout=config.block_waiting_time)
-            logger.info('Kafaka operation : send bt records record {}! '.format(body))
+            logger.info('Kafaka operation : send bt records record {}! {}'.format(body, result))
         except Exception as e:
-            er.error('Kafaka operation : send bt records record error! ' + str(e))
+            logger.error('Kafaka operation : send bt records record error! ' + str(e))
