@@ -36,8 +36,8 @@ import redis
 
 import config
 from tsdb import DBHelper
-from kafaka import sendMsg
-from logger import logger
+from util_kafka import sendMsg
+from logger import getLogger
 logger = getLogger('BT Sniffer')
 logger.propagate = False
 
@@ -54,7 +54,7 @@ sqlCommand = "SELECT address, name, vendor, company, manufacturer, \
 
 upload_cache = Queue(maxsize=0)
 all_devices = {}
-dbtool = DBHelper() if Enable_TSDB else None
+dbtool = DBHelper() if config.Enable_TSDB else None
 #use a lock to avoid the case of simutaneous reading of the buehydar_rssi_log file
 collect_task_lock = threading.Lock()
 
@@ -107,8 +107,8 @@ def loadDeviceFromDB():
             #logger.info('device from existed db: ', all_devices[record[0]])
 
 def getLocation():
-    res = r.get(config.robot_id)
-    if 'location'.encode() not in res.keys():
+    res = redis_connector.hgetall(config.robot_id)
+    if res is None or 'location'.encode() not in res.keys():
         return None
 
     return res['location'.encode()].decode()
@@ -149,12 +149,18 @@ def collect_bluehydra(interval):
                 log_fields = log_line.split(' ')
                 ts, mac, rssi = log_fields[0], log_fields[2], log_fields[3]
                 if mac not in rssi_records:
-                    rssi_records[mac] = {'rssi': {ts: rssi}, 'location': location} 
+                    # rssi_records[mac] = {location: {ts: rssi}}
+                    rssi_records[mac] = [location, ts, rssi]
                 else:
                     #filter repeated (mac, ts, rssi) records
-                    if ts in rssi_records[mac]:
-                        continue
-                    rssi_records[mac]['rssi'][ts] = rssi
+                    # if ts in rssi_records[mac][location]:
+                    #     if rssi > rssi_records[mac][location][ts]:
+                    #         rssi_records[mac][[location][ts] = rssi
+                    # else:
+                    #     rssi_records[mac][location][ts] = rssi
+                    if rssi > rssi_records[mac][-1]:
+                        rssi_records[mac] = [location, ts, rssi]
+
             logger.info('collect task loop: processed {} mac: ts: rssi records from {} original rssi records'.format(len(rssi_records), len(logs)-1))
             #print('collect task loop: processed records \n', rssi_records)
 
@@ -176,20 +182,23 @@ def upload2datacenter(interval):
         while not upload_cache.empty():
             records = upload_cache.get()
             if len(all_records) == 0:
-                all_records = records
+                for mac, record in records:
+                    location, ts, rssi = record
+                    all_records[mac] = {location: [ts, rssi]}
             else:
-                for record_mac, record_rssis in records.items():
-                    if record_mac in all_records:
-                        for ts, rssi in record_rssis.items():
-                            if ts in all_records[record_mac]:
-                                continue
-                            all_records[record_mac][ts] = rssi
+                for mac, record in records:
+                    location, ts, rssi = record
+                    if mac in all_records:
+                        if location in all_records[mac]:
+                            if rssi > all_records[mac][location][-1]:
+                                all_records[mac][location] = [ts, rssi]
+                        else:
+                            all_records[mac][location] = [ts, rssi]
                     else:
-                        all_records[record_mac] = record_rssis
+                        all_records[mac] = {location: [ts, rssi]}
                         
             upload_cache.task_done()
         logger.info('upload task loop: unified {} rssi records'.format(len(all_records)))
-        #print('upload task loop: processed records \n', upload_cache)
         
         if len(all_records) == 0:
             continue
@@ -204,30 +213,25 @@ def upload2datacenter(interval):
         upload_devices = []
         for rssi_mac, values in all_records.items():
             if rssi_mac in all_devices:
-                rssi_values = values['rssi']
-                location = values['location']
-                rssi_log = copy.deepcopy(all_devices[rssi_mac])
-                rssi_log['location'] = location
-                rssi_log['signal'] = -sys.maxint
-                rssi_log['time'] = None
-                for timestamp, rssi in rssi_values.items():
-                        if rssi > rssi_log['signal']:
-                            rssi_log['signal'] = rssi
-                            rssi_log['time'] = datetime.fromtimestamp(int(timestamp)).utcnow().isoformat("T")
-                upload_devices.append(rssi_log)
-            logger.info('sendMsg_kafuka task: built {} device+rssi records'.format(len(upload_devices)))      
-            t = threading.Thread(target=sendMsg, args=(upload_devices,))
-            t.start()
+                for location, (ts, rssi) in values.items():
+                    rssi_log = copy.deepcopy(all_devices[rssi_mac])
+                    rssi_log['location'] = location
+                    rssi_log['signal'] = rssi
+                    rssi_log['time'] = datetime.fromtimestamp(int(ts)).utcnow().isoformat("T")
+                    upload_devices.append(rssi_log)
+        logger.info('sendMsg_kafka task: to send {} device+rssi records'.format(len(upload_devices)))      
+        t = threading.Thread(target=sendMsg, args=(upload_devices,))
+        t.start()
 
 
         if dbtool:
             upload_devices = []
             for rssi_mac, rssi_values in all_records.items():
                 if rssi_mac in all_devices:
-                    for timestamp, rssi in rssi_values.items():
+                    for location, (ts, rssi) in rssi_values.items():
                         rssi_log = copy.deepcopy(all_devices[rssi_mac])
                         rssi_log['signal'] = rssi
-                        rssi_log['time'] = datetime.fromtimestamp(int(timestamp)).utcnow().isoformat("T")
+                        rssi_log['time'] = datetime.fromtimestamp(int(ts)).utcnow().isoformat("T")
                     upload_devices.append(rssi_log)
                     #print('upload task loop: build upload record -- ', rssi_log)
             logger.info('upload_tsdb task loop: built {} device+rssi records'.format(len(upload_devices)))      
@@ -249,9 +253,9 @@ if __name__ == 'main':
     #print('found time valid devices {}'.format(len(all_devices)))
 
     collect_t = threading.Thread(name='{}_collect_bt_task'.format(config.robot_id), target=collect_bluehydra, args=(config.collect_time_mini_interval,))
-    collect_t.setDaemon(True)
+    # collect_t.setDaemon(True)
     collect_t.start()
 
     upload_t = threading.Thread(name='{}_upload_bt_task'.format(config.robot_id), target=upload2datacenter, args=(config.upload_time_mini_interval,))
-    upload_t.setDaemon(True)
+    # upload_t.setDaemon(True)
     upload_t.start()

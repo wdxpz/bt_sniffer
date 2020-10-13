@@ -6,8 +6,7 @@ from logger import getLogger
 logger = getLogger('Kafaka operation')
 logger.propagate = False
 
-producer = KafkaProducer(
-    bootstrap_servers=config.brokers, compression_type='gzip', value_serializer=lambda x: json.dumps(x).encode())
+producer = KafkaProducer(bootstrap_servers=config.brokers, compression_type='gzip', value_serializer=lambda x: json.dumps(x).encode())
 
 # just an example, you don't have to follow this format
 payload = {
