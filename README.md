@@ -70,6 +70,7 @@ rssi_log: true
 
 ```
   * systemd service, [template service file](docs/blue_hydra.service)
+** remeber to modifiy the file path of delete_file.sh in blue_hydra.service file and pathes of blue_hydra_rssi.log and bt_sniffer.log in delete_file.sh**
 ```
 cp template_blue_hydar.serice /etc/systemd/system/blue_hydra.service
 sudo systemctl enable blue_hydra.service
