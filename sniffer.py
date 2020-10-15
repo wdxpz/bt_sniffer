@@ -125,7 +125,7 @@ def collect_bluehydra(interval):
         # collect_task_lock.acquire()
         
         if not os.path.exists(rssilogPath):
-            logger.info('collect task loop: not find blue_hydra_rssi.log, exit!')
+            logger.info('collect task: 0 rssi record found!')
             # collect_task_lock.release()
             continue
 
@@ -134,7 +134,7 @@ def collect_bluehydra(interval):
             # collect_task_lock.release()
             continue
 
-        rssi_records = {}
+        
         
         # empty current rssi log
         rssilogbakPath = rssilogPath+'.bak'
@@ -143,30 +143,73 @@ def collect_bluehydra(interval):
 
         with open(rssilogbakPath) as rssilog:
             logs = rssilog.readlines()
+
+        #remove logfile line
+        if len(logs)>0 and 'Logfile' in logs[0]:
+            logs = logs[1:]
+
+        if len(logs) == 0:
+            continue
+
+            #check if timestamp exceed the interval, otherwise this batch should be discard because this batch was left by last long time ago
+            #there will some logic error if the excution duration of collect_bluehydra exceed the interval
+            # last_log = logs[-1]
+            # log_fields = last_log.split(' ')
+            # ts, mac, rssi = log_fields[0], log_fields[2], log_fields[3]
+            # cur_time = int(time.time())
+            # if (cur_time-int(ts)) > max(1, interval):
+            #     logger.info('collect task: old records with time interval {}s, discard!'.format(cur_time-int(ts)))
+            #     continue
                             
-            for log_line in logs[1:]:
-                log_line = log_line[:-1]
-                log_fields = log_line.split(' ')
-                ts, mac, rssi = log_fields[0], log_fields[2], log_fields[3]
-                if mac not in rssi_records:
-                    # rssi_records[mac] = {location: {ts: rssi}}
-                    rssi_records[mac] = [location, ts, rssi]
-                else:
-                    #filter repeated (mac, ts, rssi) records
-                    # if ts in rssi_records[mac][location]:
-                    #     if rssi > rssi_records[mac][location][ts]:
-                    #         rssi_records[mac][[location][ts] = rssi
-                    # else:
-                    #     rssi_records[mac][location][ts] = rssi
-                    if rssi > rssi_records[mac][-1]:
-                        rssi_records[mac] = [location, ts, rssi]
+        #     for log_line in logs:
+        #         log_line = log_line[:-1]
+        #         log_fields = log_line.split(' ')
+        #         ts, mac, rssi = log_fields[0], log_fields[2], log_fields[3]
+        #         if mac not in rssi_records:
+        #             # rssi_records[mac] = {location: {ts: rssi}}
+        #             rssi_records[mac] = [location, ts, rssi]
+        #         else:
+        #             #filter repeated (mac, ts, rssi) records
+        #             # if ts in rssi_records[mac][location]:
+        #             #     if rssi > rssi_records[mac][location][ts]:
+        #             #         rssi_records[mac][[location][ts] = rssi
+        #             # else:
+        #             #     rssi_records[mac][location][ts] = rssi
+        #             if int(rssi) > int(rssi_records[mac][-1]):
+        #                 rssi_records[mac] = [location, ts, rssi]
 
-            logger.info('collect task loop: processed {} mac: ts: rssi records from {} original rssi records'.format(len(rssi_records), len(logs)-1))
-            #print('collect task loop: processed records \n', rssi_records)
+        #     logger.info('collect task: processed {} mac: ts: rssi records from {} original rssi records'.format(len(rssi_records), len(logs)))
+        #     #print('collect task loop: processed records \n', rssi_records)
 
-        upload_cache.put(rssi_records)
-        
-        # collect_task_lock.release()
+        # upload_cache.put(rssi_records)
+
+        t = threading.Thread(target=filter_rssi_record, args=(location, logs))
+        t.start()
+
+def filter_rssi_record(location, logs):
+    rssi_records = {}
+    
+    for log_line in logs:
+        log_line = log_line[:-1]
+        log_fields = log_line.split(' ')
+        ts, mac, rssi = log_fields[0], log_fields[2], log_fields[3]
+        if mac not in rssi_records:
+            # rssi_records[mac] = {location: {ts: rssi}}
+            rssi_records[mac] = [location, ts, rssi]
+        else:
+            #filter repeated (mac, ts, rssi) records
+            # if ts in rssi_records[mac][location]:
+            #     if rssi > rssi_records[mac][location][ts]:
+            #         rssi_records[mac][[location][ts] = rssi
+            # else:
+            #     rssi_records[mac][location][ts] = rssi
+            if int(rssi) > int(rssi_records[mac][-1]):
+                rssi_records[mac] = [location, ts, rssi]
+
+    logger.info('collect task: processed {} mac: ts: rssi records from {} original rssi records'.format(len(rssi_records), len(logs)))
+    #print('collect task loop: processed records \n', rssi_records)
+
+    upload_cache.put(rssi_records)
     
     
 #upload to data center every config.upload_time_mini_interval
@@ -190,7 +233,7 @@ def upload2datacenter(interval):
                     location, ts, rssi = record
                     if mac in all_records:
                         if location in all_records[mac]:
-                            if rssi > all_records[mac][location][-1]:
+                            if int(rssi) > int(all_records[mac][location][-1]):
                                 all_records[mac][location] = [ts, rssi]
                         else:
                             all_records[mac][location] = [ts, rssi]
@@ -198,10 +241,11 @@ def upload2datacenter(interval):
                         all_records[mac] = {location: [ts, rssi]}
                         
             upload_cache.task_done()
-        logger.info('upload task loop: unified {} rssi records'.format(len(all_records)))
         
         if len(all_records) == 0:
             continue
+
+        # logger.info('upload task: unified {} rssi records'.format(len(all_records)))
         
         #update device table
         #todo: can be improve by sqlite3 triger, the curretn problem
@@ -219,7 +263,9 @@ def upload2datacenter(interval):
                     rssi_log['signal'] = rssi
                     rssi_log['time'] = datetime.fromtimestamp(int(ts)).utcnow().isoformat("T")
                     upload_devices.append(rssi_log)
-        logger.info('sendMsg_kafka task: to send {} device+rssi records'.format(len(upload_devices)))      
+            else:
+                logger.warning('upload task: found riss reocrd with mac not existed in device DB!')
+        logger.info('upload task: to send {} device+rssi records'.format(len(upload_devices)))      
         t = threading.Thread(target=sendMsg, args=(upload_devices,))
         t.start()
 

@@ -7,6 +7,7 @@ Requires=bluetooth.service
 WorkingDirectory=/home/pi/sources/blue_hydra
 #Environment="BUNDLE_GEMFILE=/usr/lib64/blue_hydra/Gemfile"
 #ExecStart=/usr/bin/bundle exec ruby /usr/lib64/blue_hydra/bin/blue_hydra --daemon --mohawk-api
+ExecStartPre=/bin/bash /home/pi//projects/bt_sniffer/delete_file.sh 1
 ExecStart=/home/pi/sources/blue_hydra/bin/blue_hydra --daemon --mohawk-api
 Restart=on-failure
 RestartSec=3s
