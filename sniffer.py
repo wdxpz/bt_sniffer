@@ -108,6 +108,7 @@ def loadDeviceFromDB():
 
 def getLocation():
     res = redis_connector.hgetall(config.robot_id)
+    logger.info('redis return {}'.format(res))
     if res is None or 'location'.encode() not in res.keys():
         return None
 
@@ -261,7 +262,7 @@ def upload2datacenter(interval):
                     rssi_log = copy.deepcopy(all_devices[rssi_mac])
                     rssi_log['location'] = location
                     rssi_log['signal'] = rssi
-                    rssi_log['time'] = datetime.fromtimestamp(int(ts)).utcnow().isoformat("T")
+                    rssi_log['time'] = ts #datetime.fromtimestamp(int(ts)).utcnow().isoformat("T")
                     upload_devices.append(rssi_log)
             else:
                 logger.warning('upload task: found riss reocrd with mac not existed in device DB!')
@@ -277,7 +278,8 @@ def upload2datacenter(interval):
                     for location, (ts, rssi) in rssi_values.items():
                         rssi_log = copy.deepcopy(all_devices[rssi_mac])
                         rssi_log['signal'] = rssi
-                        rssi_log['time'] = datetime.fromtimestamp(int(ts)).utcnow().isoformat("T")
+                        print(ts)
+                        rssi_log['time'] = ts #datetime.fromtimestamp(int(ts)).utcnow().isoformat("T")
                     upload_devices.append(rssi_log)
                     #print('upload task loop: build upload record -- ', rssi_log)
             logger.info('upload_tsdb task loop: built {} device+rssi records'.format(len(upload_devices)))      

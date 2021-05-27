@@ -15,7 +15,7 @@ collect_time_mini_interval = 0.2
 upload_time_mini_interval = 0.5
 
 #tsdb
-Enable_TSDB = True
+Enable_TSDB = False
 upload_URL = 'www.bestfly.ml'
 upload_PORT = 8086
 upload_DB = 'robot'
