@@ -62,6 +62,19 @@ this blue_hydra is clone from : [ZeroChao BlueHydra](https://github.com/ZeroChao
 ```
 git clone https://github.com/ZeroChaos-/blue_hydra
 ```
+2. if error `An error occurred while installing louis (2.3.4), and Bundler cannot continue.
+Make sure that `gem install louis -v '2.3.4'` succeeds before bundling.`
+
+```
+#update ruby to 2.5.1, refer: https://superuser.com/questions/291693/how-to-install-the-latest-version-of-ruby-and-ruby-on-rails-in-ubuntu
+sudo apt-get isntall rbenv
+##  install rbenv-installer plugin, https://github.com/rbenv/rbenv-installer#rbenv-installer
+wget -q https://github.com/rbenv/rbenv-installer/raw/HEAD/bin/rbenv-installer -O- | bash
+
+rbenv install 2.5.1
+rbenv global 2.5.1
+
+```
 
 2. config
   * open rssi log, in ``blue_hydra_source_dir/blue_hydra.yml`
