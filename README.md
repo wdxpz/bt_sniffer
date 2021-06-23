@@ -22,6 +22,7 @@ deb http://mirrors.ustc.edu.cn/archive.raspberrypi.org/debian/ buster main ui
 sudo apt-get install git cmake libusb-1.0-0-dev make gcc g++ libbluetooth-dev \
 pkg-config libpcap-dev python-numpy python-pyside python-qt4
 ```
+or compile as [Raspberry Pi - Blue Hydra bluetooth logger](https://wiki.polaire.nl/doku.php?id=blue_hydra_ubertooth_pi)
 2. build libbtbb
 ```
 git clone https://github.com/greatscottgadgets/libbtbb.git
