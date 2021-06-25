@@ -72,9 +72,10 @@ Make sure that `gem install louis -v '2.3.4'` succeeds before bundling.`
 sudo apt update
 sudo apt-add-repository ppa:brightbox/ruby-ng && sudo apt-get update
 sudo apt-get install ruby2.4 ruby2.4-dev
+```
 
 3. config
-  * open rssi log, in ``blue_hydra_source_dir/blue_hydra.yml`
+  * open rssi log, in `blue_hydra_source_dir/blue_hydra.yml`
 ```
 rssi_log: true
 
@@ -124,44 +125,17 @@ FROM blue_hydra_devices
 WHERE CAST(strftime('%s',updated_at) AS integer) 
 BETWEEN CAST($START_TIME AS integer) AND CAST($STOP_TIME AS integer);
 ```
-    * sample code to exec sql query from [](https://github.com/corbanvilla/BluetoothDetection/blob/master/python/query.py):
-
-```
-import sqlite3
-
-# Defininitions
-databasePath = '/home/animcogn/blue_hydra.db'
-sqlCommand = "SELECT uuid, name, vendor, created_at, updated_at \
-              FROM blue_hydra_devices WHERE status = 'online';" #Query for data from blue_hydra
-
-#Main function to be called elsewhere
-def queryDatabase():
-    #Connect to database
-    try:
-        conn = sqlite3.connect(databasePath)
-        c = conn.cursor()
-
-        #Query for data, then store in list
-        try:
-            c.execute(sqlCommand)
-            results = c.fetchall()
-            return results
-            conn.close() #Close connection with database
-        except Exception as e:
-            print("Unable to query database: " + str(e))
-    except Exception as e:
-        print("Unable to connect to database: " + str(e))
-```
+    * a sample code to exec sql query from [](https://github.com/corbanvilla/BluetoothDetection/blob/master/python/query.py):
 
 # Deploy bt_sniffer service
-1. enviroment of needed packages
+## enviroment of needed packages
 ```
 pip3 install timeloop
 sudo apt-get install python3-influxdb
 ```
 
-2. modification of blue_hydra source codes
-    * modify runner.rb to recreate blue_hydra_rssi.log file after forced delete from python scrip
+## modification of blue_hydra source codes
+1. modify runner.rb to recreate blue_hydra_rssi.log file after forced delete from python scrip
 add some codes between line 835 and 836, like:
 
 ```
@@ -177,7 +151,7 @@ end
 #line 836: BlueHydra.rssi_logger.info(msg)
 
 ```
-    * modify blue_hydra.rb to change the default set to enable rssi_log
+2. modify blue_hydra.rb to change the default set to enable rssi_log
 
 
 ```
@@ -187,15 +161,16 @@ end
 "rssi_log"           => true,
 ```
 
-# Deploy: make the sniffer.py as service
-## modify the robot id
-in `project_dir/config.py`, change `robot_id` and `id`
+3. Deploy: make the sniffer.py as service
+  * modify the robot id in `project_dir/config.py`, change `robot_id` and `id`
 ```
 robot_id='tb3_0'
 id = robot_id+'-bt01'
+
 ```
 
-## nano wifi_sniffer.servcie
+  * nano wifi_sniffer.servcie
+
 ```
 [Unit]
 Description=BT Sniffer Service
@@ -214,7 +189,7 @@ WantedBy=multi-user.target
 ** key: need to add 'User/Group=pi' for raspberry, 'User/Group=husarion' for rosbot, otherwise, the module Kismest_rest will not be loaded **
 
 
-## Steps to start service
+  * Steps to start service
 
 ```
 $ cd project_dir
