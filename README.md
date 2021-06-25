@@ -73,17 +73,6 @@ sudo apt update
 sudo apt-add-repository ppa:brightbox/ruby-ng && sudo apt-get update
 sudo apt-get install ruby2.4 ruby2.4-dev
 
-# it's better to update system ruby version than install new one by rbenv
-## refer: https://superuser.com/questions/291693/how-to-install-the-latest-version-of-ruby-and-ruby-on-rails-in-ubuntu
-# sudo apt-get isntall rbenv
-##  install rbenv-installer plugin, https://github.com/rbenv/rbenv-installer#rbenv-installer
-# wget -q https://github.com/rbenv/rbenv-installer/raw/HEAD/bin/rbenv-installer -O- | bash
-
-#rbenv install 2.5.1
-#rbenv global 2.5.1
-#gem install louis -v '2.3.4'
-```
-
 3. config
   * open rssi log, in ``blue_hydra_source_dir/blue_hydra.yml`
 ```
@@ -93,13 +82,15 @@ rssi_log: true
   * systemd service, [template service file](docs/blue_hydra.service)
 
 ### install bluehydar on rosbot
-**for rosbot has no embeded bluetooth adapter, bluehydra will fail to start**
+1. **for rosbot has no embeded bluetooth adapter, bluehydra will fail to start**
 * refer [this](https://github.com/pwnieexpress/blue_hydra/issues/57) for the reason: ubertooth is not a bluetooth adapter. While ubertooth is supported, it is only supported in addition to a bluetooth adapter. Please plug in a bluetooth adapter to use blue_hydra
 * for bluetooth adapter compatible with ubuntu, please refer: [HardwareSupportComponentsBluetoothUsbAdapters](https://wiki.ubuntu.com/HardwareSupportComponentsBluetoothUsbAdapters)
 
-**remeber to modifiy the file path of delete_file.sh in blue_hydra.service file and pathes of blue_hydra_rssi.log and bt_sniffer.log in delete_file.sh**
+2. **remeber to modifiy the file path of delete_file.sh in blue_hydra.service file and pathes of blue_hydra_rssi.log and bt_sniffer.log in delete_file.sh**
 
+3. modify and deploy blue_hydra.service
 ```
+#remeber to modifiy the workspace and file path 
 cp template_blue_hydar.serice /etc/systemd/system/blue_hydra.service
 sudo systemctl enable blue_hydra.service
 sudo systemctl start blue_hydra.service
@@ -113,7 +104,8 @@ to collect bluetooth device information, it is needed to combine the data from t
     * the blue_hydra_rssi.log in `source_dir_blue_hydra`
 
 
-2. **Ignored** permission of blue_hydra.db
+2. [**Ignored**, no longer to do it]
+permission of blue_hydra.db
 **currently, if we change the persission of blue_hydra like this way, it will cause serious problem on staring blue_hydra and generating rssi_log file after forced delete**
 change the permission of blue_hydra.db for the further step to add trigger function
 ```
@@ -161,7 +153,7 @@ def queryDatabase():
         print("Unable to connect to database: " + str(e))
 ```
 
-# Development
+# Deploy bt_sniffer service
 1. enviroment of needed packages
 ```
 pip3 install timeloop
@@ -219,7 +211,7 @@ Restart=always
 WantedBy=multi-user.target
 ```
 
-** key: need to add 'User=pi', otherwise, the module Kismest_rest will not be loaded **
+** key: need to add 'User/Group=pi' for raspberry, 'User/Group=husarion' for rosbot, otherwise, the module Kismest_rest will not be loaded **
 
 
 ## Steps to start service
