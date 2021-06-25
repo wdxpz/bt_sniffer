@@ -92,6 +92,11 @@ rssi_log: true
 ```
   * systemd service, [template service file](docs/blue_hydra.service)
 
+### install bluehydar on rosbot
+**for rosbot has no embeded bluetooth adapter, bluehydra will fail to start**
+* refer [this](https://github.com/pwnieexpress/blue_hydra/issues/57) for the reason: ubertooth is not a bluetooth adapter. While ubertooth is supported, it is only supported in addition to a bluetooth adapter. Please plug in a bluetooth adapter to use blue_hydra
+* for bluetooth adapter compatible with ubuntu, please refer: [HardwareSupportComponentsBluetoothUsbAdapters](https://wiki.ubuntu.com/HardwareSupportComponentsBluetoothUsbAdapters)
+
 **remeber to modifiy the file path of delete_file.sh in blue_hydra.service file and pathes of blue_hydra_rssi.log and bt_sniffer.log in delete_file.sh**
 
 ```
