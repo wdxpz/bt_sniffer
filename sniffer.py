@@ -126,15 +126,16 @@ def collect_bluehydra(interval):
         # collect_task_lock.acquire()
         
         if not os.path.exists(rssilogPath):
-            logger.info('collect task: 0 rssi record found!')
+            # logger.info('collect task: 0 rssi record found!')
             # collect_task_lock.release()
             continue
 
         location = getLocation()
         if location is None or len(location)<2:
             # collect_task_lock.release()
-            continue
-
+           pass
+           #continue
+        
         
         
         # empty current rssi log

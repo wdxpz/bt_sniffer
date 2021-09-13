@@ -3,9 +3,9 @@ Description=BT Sniffer Service
 
 [Service]
 Type=idle
-User=pi
-Group=pi
-ExecStart=/usr/bin/python3 /home/pi/projects/bt_sniffer/sniffer.py
+User=husarion
+Group=husarion
+ExecStart=/usr/bin/python3 /home/husarion/sniffer_bt/bt_sniffer/sniffer.py
 Restart=always
 
 [Install] 

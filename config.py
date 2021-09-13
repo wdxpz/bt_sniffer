@@ -1,8 +1,8 @@
-robot_id='tb3_0'
+robot_id='rosbot1'
 id = robot_id+'-bt01'
 
 bluehydra_process_name = 'blue_hydra'
-bluehydra_path = '/home/pi/sources/blue_hydra'
+bluehydra_path = '/home/husarion/sniffer_bt/blue_hydra'
 bluehydra_rssi_log_file = 'blue_hydra_rssi.log'
 bluehydra_db_file = 'blue_hydra.db'
 
@@ -31,4 +31,4 @@ redis_host = "192.168.12.146"
 redis_port = "6379"
 
 #log file
-log_file = '/home/pi/projects/bt_sniffer/bt_sniffer.log'
+log_file = '/home/husarion/sniffer_bt/bt_sniffer/bt_sniffer.log'
