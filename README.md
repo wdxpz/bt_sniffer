@@ -73,8 +73,15 @@ sudo apt update
 sudo apt-add-repository ppa:brightbox/ruby-ng && sudo apt-get update
 sudo apt-get install ruby2.4 ruby2.4-dev
 ```
+3. if error `blue hydra Unable to read the mac address from hci0`
+```
+sudo apt install bluez
 
-3. config
+#and then check the hci by
+ hciconfig -a
+ 
+```
+5. config
   * open rssi log, in `blue_hydra_source_dir/blue_hydra.yml`
 ```
 rssi_log: true
