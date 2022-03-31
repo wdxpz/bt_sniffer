@@ -139,6 +139,9 @@ BETWEEN CAST($START_TIME AS integer) AND CAST($STOP_TIME AS integer);
 ```
 pip3 install timeloop
 sudo apt-get install python3-influxdb
+pip3 install kafka-python==2.0.1
+pip3 install redis
+pip3 install psutil
 ```
 
 ## modification of blue_hydra source codes
